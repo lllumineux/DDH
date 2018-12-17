@@ -16,5 +16,5 @@ documentation = {
     }
 }
 
-with open('documentation', 'w+', encoding='utf-8') as file:
+with open('base.json', 'w+', encoding='utf-8') as file:
     json.dump(documentation, file)
