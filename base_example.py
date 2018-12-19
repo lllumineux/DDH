@@ -1,7 +1,7 @@
 import json
 
 documentation = {
-    'func_name': {
+    'func_name()': {
         'description': '',
         'syntax': '',
         'args': {
