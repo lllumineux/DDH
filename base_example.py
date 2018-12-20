@@ -5,7 +5,7 @@ documentation = {
         'description': '',
         'syntax': '',
         'args': {
-            'arg': {
+            'arg_name': {
                 'description': '',
                 'type': '',
                 'default_value': '',

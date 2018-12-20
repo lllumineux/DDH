@@ -1,16 +1,12 @@
 import json
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.style import WD_STYLE_TYPE
-from docx.shared import Inches, Pt
 import sys
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QInputDialog, \
-    QMessageBox, QWidget, QGridLayout, \
-    QVBoxLayout,  QApplication, QMainWindow, QDesktopWidget, QPushButton, \
-    QSizePolicy
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QInputDialog, QMessageBox, QWidget, QGridLayout, \
+    QVBoxLayout, QApplication, QMainWindow, QDesktopWidget, QPushButton, \
+    QSizePolicy, QLabel, QScrollArea, QLineEdit, QHBoxLayout
 
 
+# Главное окно
 class ddh(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -55,16 +51,20 @@ class ddh(QMainWindow):
                            ('change', 'изменить', self.change_func),
                            ('del', 'удалить', self.del_func),
                            ('exp', 'экспортировать', self.exp_func))
+
         for obj_name, name, btn_func in btn_create_info:
             self.btn = QPushButton(self.btn_widget)
             self.btn.setObjectName('btn_' + obj_name)
             self.btn.setText(name.upper())
             self.btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self.btn.setMinimumSize(QtCore.QSize(200, 50))
-            self.btn.setStyleSheet('background: #212121; color: #fafafa;'
-                                   'font-family: Arial Black; font-size: 10px;')
-            self.btn.clicked.connect(btn_func)
             self.btn_block.addWidget(self.btn)
+            self.btn.clicked.connect(btn_func)
+            self.btn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+            self.btn.setStyleSheet('QPushButton {background: #212121; color: #fafafa;'
+                                   'font-family: Arial Black; font-size: 10px;'
+                                   'border: none;}'
+                                   'QPushButton:hover {background: #383838;}')
 
         # Добавление сеток друг в друга
         self.main_window_grid.addWidget(self.btn_widget, 1, 1, 1, 1)
@@ -72,18 +72,38 @@ class ddh(QMainWindow):
 
     # Добавление функции в json файл
     def add_func(self):
-        ans, ok_pressed = QInputDialog.getText(
-            self, 'Изменить функцию', 'Введите название функции(без скобок)')
+        ans1, ok_pressed1 = QInputDialog.getText(
+            self, 'Изменить функцию', 'Введите название функции')
+        ans2 = ''
+
+        while True:
+            try:
+                ans2, ok_pressed2 = QInputDialog.getText(
+                    self, 'Изменить функцию', 'Введите количество аргументов')
+                ans2 = int(ans2)
+                if ans2 >= 0:
+                    break
+
+            except Exception:
+                pass
+
+        if ok_pressed1 and ok_pressed2:
+            self.dialog = func_window(ans1, ans2)
+            self.dialog.show()
 
     # Изменение существующей функции из json файла
     def change_func(self):
         ans, ok_pressed = QInputDialog.getText(
-            self, 'Изменить функцию', 'Введите название функции(без скобок)')
+            self, 'Изменить функцию', 'Введите название функции')
+
+        if ok_pressed:
+            self.dialog = func_window(ans)
+            self.dialog.show()
 
     # Удаление функции из json файла
     def del_func(self):
         ans, ok_pressed = QInputDialog(self).getText(
-            self, 'Удалить функцию', 'Введите название функции(без скобок)')
+            self, 'Удалить функцию', 'Введите название функции')
 
         try:
             with open('base.json', 'r', encoding='utf-8') as file:
@@ -99,9 +119,10 @@ class ddh(QMainWindow):
         except Exception:
             del_result_text = ('Ошибка', 'Функция не найдена')
 
-        QMessageBox.information(self, *del_result_text)
+        if ans != '':
+            QMessageBox.information(self, *del_result_text)
 
-    # Экспорт json файла
+    # Выбор формата для экспорта json файла
     def exp_func(self):
         exp_format, ok_pressed = QInputDialog.getItem(
             self, 'Экспортировать', 'Выберите формат экспорта',
@@ -123,115 +144,246 @@ class ddh(QMainWindow):
                     file.write(html_file)
 
             elif exp_format == 'docx':
-                    # Создание документа
-                    doc = Document()
-                    # Стили документа
-                    styles = doc.styles
-
-                    # Изменение шрифта для заглавия
-                    style = styles.add_style('Big_size', WD_STYLE_TYPE.CHARACTER)
-                    big = doc.styles['Big_size']
-                    big_font = big.font
-                    big_font.name = 'Arial'
-                    big_font.size = Pt(24)
-
-                    # Изменение шрифта постепенно
-                    normal = doc.styles['Normal']
-                    font = normal.font
-                    font.name = 'Arial'
-                    font.size = Pt(16)
-                    style = styles.add_style('Citation', WD_STYLE_TYPE.PARAGRAPH)
-                    small = doc.styles['Citation']
-                    small_font = small.font
-                    small_font.name = 'Arial'
-                    small_font.size = Pt(14)
-                    style1 = styles.add_style('Smallest_small', WD_STYLE_TYPE.PARAGRAPH)
-                    smallest = doc.styles['Smallest_small']
-                    smallest_font = smallest.font
-                    smallest_font.name = 'Arial'
-                    smallest_font.size = Pt(12)
-
-                    # Добавление заглавия
-                    run = doc.add_paragraph()
-                    paragraph_format = run.paragraph_format
-                    paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    run.add_run('Справка по функциям', style='Big_size').bold = True
-
-                    # Списки функций, их аргументов и других элементов
-                    functions = []
-                    for i in base:
-                        functions.append(i)
-                    elements = []
-                    for i in functions:
-                        for j in base[i]:
-                            elements.append(base[i][j])
-                    args = []
-                    for i in base['func_name']['args']:
-                        args.append(base['func_name']['args'][i])
-                    elements_args = []
-                    for i in functions:
-                        for j in base[i]['args']:
-                            for g in base[i]['args'][j]:
-                                elements_args.append(base[i]['args'][j][g])
-
-                    # Написание самого документа
-                    for k in functions:
-                        p = doc.add_paragraph()
-                        p.add_run(k).bold = True
-                        for key in base[k]:
-                            if key == 'description':
-                                p1 = doc.add_paragraph('Описание функции:', style='Citation')
-                            if key == 'syntax':
-                                p1 = doc.add_paragraph('Синтакс функции:', style='Citation')
-                            if key == 'return_value':
-                                p1 = doc.add_paragraph('Возвращаемое значение функции:', style='Citation')
-                            if key == 'args':
-                                p1 = doc.add_paragraph('Аргументы функции:', style='Citation')
-                            paragraph_format1 = p1.paragraph_format
-                            for value1 in range(len(elements)):
-                                if key == 'description' and value1 == 0:
-                                    p2 = doc.add_paragraph(elements[value1], style='Citation')
-                                if key == 'syntax' and value1 == 1:
-                                    p2 = doc.add_paragraph(elements[value1], style='Citation')
-                                if key == 'return_value' and value1 == 3:
-                                    p2 = doc.add_paragraph(elements[value1], style='Citation')
-                            paragraph_format1.first_line_indent = Inches(0.25)
-                            paragraph_format2 = p2.paragraph_format
-                            paragraph_format2.first_line_indent = Inches(0.50)
-                            if key == 'args':
-                                for _ in range(len(base[k]['args'])):
-                                    n_arg = str(_ + 1)
-                                    p3 = doc.add_paragraph('Аргумент №' + n_arg + ':', style='Citation')
-                                    paragraph_format3 = p3.paragraph_format
-                                    paragraph_format3.first_line_indent = Inches(0.50)
-
-                                    for g in base[k]['args']['arg' + n_arg]:
-                                        for value2 in range(len(elements_args)):
-                                            if g == 'description' and value2 == 0:
-                                                p4 = doc.add_paragraph('Описане аргумента:', style='Smallest_small')
-                                                p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
-                                            if g == 'type' and value2 == 1:
-                                                p4 = doc.add_paragraph('Тип аргумента:', style='Smallest_small')
-                                                p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
-                                            if g == 'default_value' and value2 == 2:
-                                                p4 = doc.add_paragraph('Дефолтное значение аргумента:',
-                                                                       style='Smallest_small')
-                                                p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
-                                            if g == 'addition' and value2 == 3:
-                                                p4 = doc.add_paragraph('Примичание:', style='Smallest_small')
-                                                p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
-                                            paragraph_format5 = p5.paragraph_format
-                                            paragraph_format5.first_line_indent = Inches(1.0)
-                                            paragraph_format4 = p4.paragraph_format
-                                            paragraph_format4.first_line_indent = Inches(0.75)
-                                    elements_args = elements_args[4:]
-                        elements = elements[4:]
-                        p6 = doc.add_paragraph()
-                    doc.add_page_break()
-                    doc.save('ddh.docx')
+                pass
 
 
-app = QApplication(sys.argv)
-ex = ddh()
-ex.show()
-sys.exit(app.exec_())
+# Окно редактирования json файла
+class func_window(QMainWindow):
+    def __init__(self, func_name_str, arg_amount=-1):
+        super().__init__()
+        self.arg_amount, self.func_name_str, self.args_info_form = \
+            arg_amount, func_name_str, []
+        self.is_change_func = True if arg_amount == -1 else False
+        self.setupUi()
+
+    def setupUi(self):
+        # Параметры окна
+        self.setObjectName('func_window')
+        x = (QDesktopWidget().screenGeometry().width() -
+             QDesktopWidget().screenGeometry().width() // 2) // 2
+        y = (QDesktopWidget().screenGeometry().height() -
+             QDesktopWidget().screenGeometry().height() // 2) // 2
+        self.setGeometry(x, y, QDesktopWidget().screenGeometry().width() / 2,
+                         QDesktopWidget().screenGeometry().height() / 2)
+        self.setWindowTitle(self.func_name_str)
+        self.setStyleSheet('background: #fafafa;')
+        
+        # Виджет окна
+        self.func_window_grid = QWidget(self)
+        self.func_window_grid.setObjectName('func_window_grid')
+
+        # Основная сетка окна
+        self.vertical_layout_1 = QVBoxLayout(self.func_window_grid)
+        self.vertical_layout_1.setObjectName('vertical_layout_1')
+        
+        # Скролл-область
+        self.scroll_area = QScrollArea(self.func_window_grid)
+        self.scroll_area.setObjectName('scroll_area')
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area_widget = QWidget(self)
+        self.scroll_area_widget.setObjectName('scroll_area_widget')
+
+        # Блок параметров
+        self.vertical_layout_2 = QVBoxLayout(self.scroll_area_widget)
+        self.vertical_layout_2.setObjectName('vertical_layout_2')
+
+        # Блок описания и добавление его в скролл-область
+        self.func_description_layout_2 = QVBoxLayout()
+        self.func_description_layout_2.setObjectName('func_description_layout_2')
+        self.func_description_label_2 = QLabel(self.scroll_area_widget)
+
+        # Название блока описания
+        self.func_description_label_2.setObjectName('func_description_label_2')
+        self.func_description_label_2.setText('Описание')
+        self.func_description_layout_2.addWidget(self.func_description_label_2)
+
+        # Форма редактирования блока описания
+        self.func_description_edit_2 = QLineEdit(self.scroll_area_widget)
+        self.func_description_edit_2.setObjectName('func_description_edit_2')
+        self.func_description_layout_2.addWidget(self.func_description_edit_2)
+
+        # Добавление блока описания в блок параметров
+        self.vertical_layout_2.addLayout(self.func_description_layout_2)
+
+        # Блок синтаксиса и добавление его в скролл-область
+        self.func_syntax_layout_2 = QVBoxLayout()
+        self.func_syntax_layout_2.setObjectName('func_syntax_layout_2')
+        self.func_syntax_label_2 = QLabel(self.scroll_area_widget)
+
+        # Название блока синтаксиса
+        self.func_syntax_label_2.setObjectName('func_syntax_label_2')
+        self.func_syntax_label_2.setText('Синтаксис')
+        self.func_syntax_layout_2.addWidget(self.func_syntax_label_2)
+
+        # Форма редактирования блока синтаксиса
+        self.func_syntax_edit_2 = QLineEdit(self.scroll_area_widget)
+        self.func_syntax_edit_2.setObjectName('func_syntax_edit_2')
+        self.func_syntax_layout_2.addWidget(self.func_syntax_edit_2)
+
+        # Добавление блока синтаксиса в блок параметров
+        self.vertical_layout_2.addLayout(self.func_syntax_layout_2)
+
+        # Блок возвращаемого значения и добавление его в скролл-область
+        self.func_return_value_layout_2 = QVBoxLayout()
+        self.func_return_value_layout_2.setObjectName('func_return_value_layout_2')
+        self.func_return_value_label_2 = QLabel(self.scroll_area_widget)
+
+        # Название возвращаемого значения
+        self.func_return_value_label_2.setObjectName('func_return_value_label_2')
+        self.func_return_value_label_2.setText('Возвращаемое значение')
+        self.func_return_value_layout_2.addWidget(self.func_return_value_label_2)
+
+        # Форма редактирования возвращаемого значения
+        self.func_return_value_edit_2 = QLineEdit(self.scroll_area_widget)
+        self.func_return_value_edit_2.setObjectName('func_return_value_edit_2')
+        self.func_return_value_layout_2.addWidget(self.func_return_value_edit_2)
+
+        # Добавление блока возвращаемого значения в блок параметров
+        self.vertical_layout_2.addLayout(self.func_return_value_layout_2)
+
+        # Добавление скролл-области в основную сетку окна
+        self.scroll_area.setWidget(self.scroll_area_widget)
+        self.vertical_layout_1.addWidget(self.scroll_area)
+
+        # Блок навигации
+        self.func_window_nav = QHBoxLayout()
+        self.func_window_nav.setObjectName('func_window_nav')
+
+        # Кнопка 'сохравнить и выйти'
+        self.save_and_exit_btn = QPushButton(self.func_window_grid)
+        self.save_and_exit_btn.setObjectName('save_and_exit_btn')
+        self.save_and_exit_btn.setText('Сохравнить и выйти')
+        self.save_and_exit_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.save_and_exit_btn.setMinimumSize(QtCore.QSize(200, 30))
+        self.save_and_exit_btn.setMaximumSize(QtCore.QSize(200, 30))
+        self.save_and_exit_btn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.save_and_exit_btn.setStyleSheet('QPushButton {background: #212121;'
+                                             ' color: #fafafa; font-family: Arial Black; '
+                                             'font-size: 10px; border: none;} '
+                                             'QPushButton:hover {background: #383838;}')
+        self.save_and_exit_btn.clicked.connect(self.save_and_exit)
+
+        # Добавление кнопки 'сохравнить и выйти' в блок навигации
+        self.func_window_nav.addWidget(self.save_and_exit_btn)
+
+        # Добавление блока навигации в основную сетку окна
+        self.vertical_layout_1.addLayout(self.func_window_nav)
+
+        # Блок аргументов
+        self.args_layout = QVBoxLayout()
+        self.args_layout.setObjectName('args_layout')
+
+        # Название блока аргументов
+        self.label_args = QLabel(self.scroll_area_widget)
+        self.label_args.setObjectName('label_args')
+        self.label_args.setText('Аргументы')
+        self.args_layout.addWidget(self.label_args)
+
+        # Добавление блока аргументов в блок параметров
+        self.vertical_layout_2.addLayout(self.args_layout)
+
+        # Назначение основного виджета окна
+        self.setCentralWidget(self.func_window_grid)
+
+        if self.is_change_func:
+            try:
+                with open('base.json', 'r', encoding='utf-8') as file:
+                    base = json.load(file)
+                self.arg_amount = len(base[self.func_name_str]['args'])
+            except Exception:
+                QMessageBox.information(self, 'Ошибка', 'Функция не найдена!')
+
+        self.n = 0
+        for i in range(self.arg_amount):
+            self.add_argument()
+
+        if self.is_change_func:
+            self.fill_window()
+
+    def add_argument(self):
+        self.n += 1
+        self.a = 0
+        self.grid_args = QVBoxLayout()
+        self.label_name_arg = QLabel('аргумент #' + str(self.n), self.scroll_area_widget)
+        self.grid_args.addWidget(self.label_name_arg)
+        self.vertical_layout_2.addLayout(self.grid_args)
+        self.label_name_arg.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.vertical_layout_2.addLayout(self.grid_args)
+        arg_info = (('Название аргумента', 'arg_name_', 'name_arg_lineEdit_'),
+                    ('Описаниее аргумента', 'label_description_arg_', 'description_arg_lineEdit_'),
+                    ('Тип аргумента', 'label_type_arg_', 'type_arg_lineEdit_'),
+                    ('Начальное значение аргумента', 'label_default_value_', 'default_value_lineEdit_'),
+                    ('Примечание', 'label_additions', 'additions_lineEdit_'))
+        self.arg_info_form = []
+        for name, label, lineEdit in arg_info:
+            self.grid_arg = QVBoxLayout()
+            self.arg_name = QLabel(name, self.scroll_area_widget)
+            self.grid_arg.addWidget(self.arg_name)
+            self.arg_lineEdit = QLineEdit()
+            self.grid_arg.addWidget(self.arg_lineEdit)
+            self.arg_name.setObjectName(label + str(self.a))
+            self.arg_lineEdit.setObjectName(lineEdit + str(self.a))
+            self.vertical_layout_2.addLayout(self.grid_arg)
+            self.a += 1
+            self.arg_info_form.append((self.arg_lineEdit))
+
+        self.args_info_form.append(self.arg_info_form)
+
+            
+    def save_and_exit(self):
+        try:
+            with open('base.json', 'r', encoding='utf-8') as file:
+                base = json.load(file)
+        except Exception:
+            base = {}
+
+        func = {
+            self.func_name_str: {
+                'description': self.func_description_edit_2.text(),
+                'syntax': self.func_syntax_edit_2.text(),
+                'args': {
+                     self.args_info_form[i][0].text(): {
+                        'description': self.args_info_form[i][1].text(),
+                        'type': self.args_info_form[i][2].text(),
+                        'default_value': self.args_info_form[i][3].text(),
+                        'addition': self.args_info_form[i][4].text()
+                     }
+                     for i in range(len(self.args_info_form))
+                },
+                'return_value': self.func_return_value_edit_2.text()
+            }
+        }
+
+        base[self.func_name_str] = func[self.func_name_str]
+
+        with open('base.json', 'w+', encoding='utf-8') as file:
+            json.dump(base, file)
+
+        self.close()
+
+    def fill_window(self):
+        try:
+            with open('base.json', 'r', encoding='utf-8') as file:
+                base = json.load(file)
+
+            self.func_description_edit_2.setText(base[self.func_name_str]['description'])
+            self.func_syntax_edit_2.setText(base[self.func_name_str]['syntax'])
+            self.func_return_value_edit_2.setText(base[self.func_name_str]['return_value'])
+            i = 0
+            for arg in base[self.func_name_str]['args']:
+                self.args_info_form[i][0].setText(arg)
+                self.args_info_form[i][1].setText(base[self.func_name_str]['args'][arg]['description'])
+                self.args_info_form[i][2].setText(base[self.func_name_str]['args'][arg]['type'])
+                self.args_info_form[i][3].setText(base[self.func_name_str]['args'][arg]['default_value'])
+                self.args_info_form[i][4].setText(base[self.func_name_str]['args'][arg]['addition'])
+                i += 1
+
+        except Exception:
+            QMessageBox.information(self, 'Функция не найдена!')
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = ddh()
+    ex.show()
+    sys.exit(app.exec_())
