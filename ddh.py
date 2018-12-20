@@ -4,6 +4,10 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QInputDialog, QMessageBox, QWidget, QGridLayout, \
     QVBoxLayout, QApplication, QMainWindow, QDesktopWidget, QPushButton, \
     QSizePolicy, QLabel, QScrollArea, QLineEdit, QHBoxLayout
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.style import WD_STYLE_TYPE
+from docx.shared import Inches, Pt
 
 
 # Главное окно
@@ -144,7 +148,115 @@ class ddh(QMainWindow):
                     file.write(html_file)
 
             elif exp_format == 'docx':
-                pass
+                # Создание документа
+                doc = Document()
+
+                # Стили документа
+                styles = doc.styles
+
+                # Изменение шрифта для заглавия
+                style = styles.add_style('Big_size', WD_STYLE_TYPE.CHARACTER)
+                big = doc.styles['Big_size']
+                big_font = big.font
+                big_font.name = 'Arial'
+                big_font.size = Pt(24)
+
+                # Изменение шрифта постепенно
+                normal = doc.styles['Normal']
+                font = normal.font
+                font.name = 'Arial'
+                font.size = Pt(16)
+                style = styles.add_style('Citation', WD_STYLE_TYPE.PARAGRAPH)
+                small = doc.styles['Citation']
+                small_font = small.font
+                small_font.name = 'Arial'
+                small_font.size = Pt(14)
+                style1 = styles.add_style('Smallest_small', WD_STYLE_TYPE.PARAGRAPH)
+                smallest = doc.styles['Smallest_small']
+                smallest_font = smallest.font
+                smallest_font.name = 'Arial'
+                smallest_font.size = Pt(12)
+
+                # Добавление заглавия
+                run = doc.add_paragraph()
+                paragraph_format = run.paragraph_format
+                paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run.add_run('Справка по функциям', style='Big_size').bold = True
+
+                # Списки функций, их аргументов и других элементов
+                functions = []
+                for i in base:
+                    functions.append(i)
+                elements = []
+                for i in functions:
+                    for j in base[i]:
+                        elements.append(base[i][j])
+                args = []
+                for i in functions:
+                    i = base[i]['args'].keys()
+                    a = []
+                    for j in i:
+                        a.append(j)
+                    args.append(a)
+                elements_args = []
+                for i in functions:
+                    for j in base[i]['args']:
+                        for g in base[i]['args'][j]:
+                            elements_args.append(base[i]['args'][j][g])
+
+                # Написание самого документа
+                for k in range(len(functions)):
+                    p = doc.add_paragraph()
+                    p.add_run(functions[k]).bold = True
+                    for key in base[functions[k]]:
+                        if key == 'description':
+                            p1 = doc.add_paragraph('Описание функции:', style='Citation')
+                        if key == 'syntax':
+                            p1 = doc.add_paragraph('Синтакс функции:', style='Citation')
+                        if key == 'return_value':
+                            p1 = doc.add_paragraph('Возвращаемое значение функции:', style='Citation')
+                        if key == 'args':
+                            p1 = doc.add_paragraph('Аргументы функции:', style='Citation')
+                        paragraph_format1 = p1.paragraph_format
+                        for value1 in range(len(elements)):
+                            if key == 'description' and value1 == 0:
+                                p2 = doc.add_paragraph(elements[value1], style='Citation')
+                            if key == 'syntax' and value1 == 1:
+                                p2 = doc.add_paragraph(elements[value1], style='Citation')
+                            if key == 'return_value' and value1 == 3:
+                                p2 = doc.add_paragraph(elements[value1], style='Citation')
+                        paragraph_format1.first_line_indent = Inches(0.25)
+                        paragraph_format2 = p2.paragraph_format
+                        paragraph_format2.first_line_indent = Inches(0.50)
+                        if key == 'args':
+                            for l in range(len(args[k])):
+                                p3 = doc.add_paragraph(args[k][l] + ':', style='Citation')
+                                paragraph_format3 = p3.paragraph_format
+                                paragraph_format3.first_line_indent = Inches(0.50)
+                                for f in base[functions[k]]['args'][args[k][l]]:
+                                    for value2 in range(len(elements_args)):
+                                        if f == 'description' and value2 == 0:
+                                            p4 = doc.add_paragraph('Описане аргумента:', style='Smallest_small')
+                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                        if f == 'type' and value2 == 1:
+                                            p4 = doc.add_paragraph('Тип аргумента:', style='Smallest_small')
+                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                        if f == 'default_value' and value2 == 2:
+                                            p4 = doc.add_paragraph('Начальное значение аргумента:',
+                                                                   style='Smallest_small')
+                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                        if f == 'addition' and value2 == 3:
+                                            p4 = doc.add_paragraph('Примичание:', style='Smallest_small')
+                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                        paragraph_format5 = p5.paragraph_format
+                                        paragraph_format5.first_line_indent = Inches(1.0)
+                                        paragraph_format4 = p4.paragraph_format
+                                        paragraph_format4.first_line_indent = Inches(0.75)
+                                elements_args = elements_args[4:]
+                    elements = elements[4:]
+                    p6 = doc.add_paragraph()
+                doc.add_page_break()
+                doc.save('ddh.docx')
 
 
 # Окно редактирования json файла
