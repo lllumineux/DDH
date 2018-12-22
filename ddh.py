@@ -78,21 +78,21 @@ class ddh(QMainWindow):
     def add_func(self):
         ans1, ok_pressed1 = QInputDialog.getText(
             self, 'Изменить функцию', 'Введите название функции')
-        ans2 = ''
+        ans2, ok_pressed2, wrong_value = '', False, False
 
-        while True:
-            try:
-                ans2, ok_pressed2 = QInputDialog.getText(
-                    self, 'Изменить функцию', 'Введите количество аргументов')
-                ans2 = int(ans2)
-                if ans2 >= 0:
-                    break
+        try:
+            ans2, ok_pressed2 = QInputDialog.getText(
+                self, 'Изменить функцию', 'Введите количество аргументов')
 
-            except Exception:
-                pass
+            if ans2.isalpha() or int(ans2) < 0:
+                QMessageBox.information(self, 'Ошибка', 'Неверное значение!')
+                wrong_value = True
 
-        if ok_pressed1 and ok_pressed2:
-            self.dialog = func_window(ans1, ans2)
+        except Exception:
+            pass
+
+        if ok_pressed1 and ok_pressed2 and not wrong_value and ans2 != '':
+            self.dialog = func_window(ans1, int(ans2))
             self.dialog.show()
 
     # Изменение существующей функции из json файла
@@ -100,7 +100,17 @@ class ddh(QMainWindow):
         ans, ok_pressed = QInputDialog.getText(
             self, 'Изменить функцию', 'Введите название функции')
 
-        if ok_pressed:
+        try:
+            with open('base.json', 'r', encoding='utf-8') as file:
+                base = json.load(file)
+
+                if not ans in base:
+                    QMessageBox.information(self, 'Ошибка', 'Функция не найдена!')
+                    base = {}
+        except Exception:
+            base = {}
+
+        if ok_pressed and ans in base:
             self.dialog = func_window(ans)
             self.dialog.show()
 
@@ -279,7 +289,7 @@ class func_window(QMainWindow):
                          QDesktopWidget().screenGeometry().height() / 2)
         self.setWindowTitle(self.func_name_str)
         self.setStyleSheet('background: #fafafa;')
-        
+
         # Виджет окна
         self.func_window_grid = QWidget(self)
         self.func_window_grid.setObjectName('func_window_grid')
@@ -287,7 +297,7 @@ class func_window(QMainWindow):
         # Основная сетка окна
         self.vertical_layout_1 = QVBoxLayout(self.func_window_grid)
         self.vertical_layout_1.setObjectName('vertical_layout_1')
-        
+
         # Скролл-область
         self.scroll_area = QScrollArea(self.func_window_grid)
         self.scroll_area.setObjectName('scroll_area')
@@ -362,37 +372,39 @@ class func_window(QMainWindow):
         self.func_window_nav.setObjectName('func_window_nav')
 
         # Кнопка 'сохравнить и выйти'
-        self.save_and_exit_btn = QPushButton(self.func_window_grid)
-        self.save_and_exit_btn.setObjectName('save_and_exit_btn')
-        self.save_and_exit_btn.setText('Сохравнить и выйти')
-        self.save_and_exit_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.save_and_exit_btn.setMinimumSize(QtCore.QSize(200, 30))
-        self.save_and_exit_btn.setMaximumSize(QtCore.QSize(200, 30))
-        self.save_and_exit_btn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.save_and_exit_btn.setStyleSheet('QPushButton {background: #212121;'
+        self.save_btn = QPushButton(self.func_window_grid)
+        self.save_btn.setObjectName('save_btn')
+        self.save_btn.setText('Сохравнить и выйти')
+        self.save_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.save_btn.setMinimumSize(QtCore.QSize(200, 30))
+        self.save_btn.setMaximumSize(QtCore.QSize(200, 30))
+        self.save_btn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.save_btn.setStyleSheet('QPushButton {background: #212121;'
                                              ' color: #fafafa; font-family: Arial Black; '
                                              'font-size: 10px; border: none;} '
                                              'QPushButton:hover {background: #383838;}')
-        self.save_and_exit_btn.clicked.connect(self.save_and_exit)
+        self.save_btn.clicked.connect(self.save)
 
         # Добавление кнопки 'сохравнить и выйти' в блок навигации
-        self.func_window_nav.addWidget(self.save_and_exit_btn)
+        self.func_window_nav.addWidget(self.save_btn)
 
         # Добавление блока навигации в основную сетку окна
         self.vertical_layout_1.addLayout(self.func_window_nav)
 
-        # Блок аргументов
-        self.args_layout = QVBoxLayout()
-        self.args_layout.setObjectName('args_layout')
+        # Проверка колличества аргументов
+        if self.arg_amount > 0:
+            # Блок аргументов
+            self.args_layout = QVBoxLayout()
+            self.args_layout.setObjectName('args_layout')
 
-        # Название блока аргументов
-        self.label_args = QLabel(self.scroll_area_widget)
-        self.label_args.setObjectName('label_args')
-        self.label_args.setText('Аргументы')
-        self.args_layout.addWidget(self.label_args)
+            # Название блока аргументов
+            self.label_args = QLabel(self.scroll_area_widget)
+            self.label_args.setObjectName('label_args')
+            self.label_args.setText('Аргументы')
+            self.args_layout.addWidget(self.label_args)
 
-        # Добавление блока аргументов в блок параметров
-        self.vertical_layout_2.addLayout(self.args_layout)
+            # Добавление блока аргументов в блок параметров
+            self.vertical_layout_2.addLayout(self.args_layout)
 
         # Назначение основного виджета окна
         self.setCentralWidget(self.func_window_grid)
@@ -407,12 +419,13 @@ class func_window(QMainWindow):
 
         self.n = 0
         for i in range(self.arg_amount):
-            self.add_argument()
+            self.add_arg()
 
         if self.is_change_func:
             self.fill_window()
 
-    def add_argument(self):
+# Добавление одного аргумента
+    def add_arg(self):
         self.n += 1
         self.a = 0
         self.grid_args = QVBoxLayout()
@@ -441,8 +454,8 @@ class func_window(QMainWindow):
 
         self.args_info_form.append(self.arg_info_form)
 
-            
-    def save_and_exit(self):
+# Сохранение введённых данных
+    def save(self):
         try:
             with open('base.json', 'r', encoding='utf-8') as file:
                 base = json.load(file)
@@ -473,6 +486,7 @@ class func_window(QMainWindow):
 
         self.close()
 
+# Заполнение параметров функции, после нажатия на кнопку изменить
     def fill_window(self):
         try:
             with open('base.json', 'r', encoding='utf-8') as file:
