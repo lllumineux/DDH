@@ -207,7 +207,8 @@ class ddh(QMainWindow):
                     a = []
                     for j in i:
                         a.append(j)
-                    args.append(a)
+                        if len(a) != 0:
+                            args.append(a)
                 elements_args = []
                 for i in functions:
                     for j in base[i]['args']:
@@ -220,48 +221,76 @@ class ddh(QMainWindow):
                     p.add_run(functions[k]).bold = True
                     for key in base[functions[k]]:
                         if key == 'description':
-                            p1 = doc.add_paragraph('Описание функции:', style='Citation')
+                            p1 = doc.add_paragraph('Описание функции:',
+                                                   style='Citation')
                         if key == 'syntax':
-                            p1 = doc.add_paragraph('Синтакс функции:', style='Citation')
+                            p1 = doc.add_paragraph('Синтакс функции:',
+                                                   style='Citation')
                         if key == 'return_value':
-                            p1 = doc.add_paragraph('Возвращаемое значение функции:', style='Citation')
-                        if key == 'args':
-                            p1 = doc.add_paragraph('Аргументы функции:', style='Citation')
+                            p1 = doc.add_paragraph(
+                                'Возвращаемое значение функции:',
+                                style='Citation')
+                        if key == 'args' and len(args) != 0:
+                            p1 = doc.add_paragraph('Аргументы функции:',
+                                                   style='Citation')
                         paragraph_format1 = p1.paragraph_format
                         for value1 in range(len(elements)):
                             if key == 'description' and value1 == 0:
-                                p2 = doc.add_paragraph(elements[value1], style='Citation')
+                                p2 = doc.add_paragraph(elements[value1],
+                                                       style='Citation')
                             if key == 'syntax' and value1 == 1:
-                                p2 = doc.add_paragraph(elements[value1], style='Citation')
+                                p2 = doc.add_paragraph(elements[value1],
+                                                       style='Citation')
                             if key == 'return_value' and value1 == 3:
-                                p2 = doc.add_paragraph(elements[value1], style='Citation')
+                                p2 = doc.add_paragraph(elements[value1],
+                                                       style='Citation')
                         paragraph_format1.first_line_indent = Inches(0.25)
                         paragraph_format2 = p2.paragraph_format
                         paragraph_format2.first_line_indent = Inches(0.50)
-                        if key == 'args':
+                        if key == 'args' and len(args) != 0:
                             for l in range(len(args[k])):
-                                p3 = doc.add_paragraph(args[k][l] + ':', style='Citation')
+                                p3 = doc.add_paragraph(args[k][l] + ':',
+                                                       style='Citation')
                                 paragraph_format3 = p3.paragraph_format
-                                paragraph_format3.first_line_indent = Inches(0.50)
-                                for f in base[functions[k]]['args'][args[k][l]]:
+                                paragraph_format3.first_line_indent = Inches(
+                                    0.50)
+                                for f in base[functions[k]]['args'][
+                                    args[k][l]]:
                                     for value2 in range(len(elements_args)):
                                         if f == 'description' and value2 == 0:
-                                            p4 = doc.add_paragraph('Описане аргумента:', style='Smallest_small')
-                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                            p4 = doc.add_paragraph(
+                                                'Описане аргумента:',
+                                                style='Smallest_small')
+                                            p5 = doc.add_paragraph(
+                                                elements_args[value2],
+                                                style='Smallest_small')
                                         if f == 'type' and value2 == 1:
-                                            p4 = doc.add_paragraph('Тип аргумента:', style='Smallest_small')
-                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                            p4 = doc.add_paragraph(
+                                                'Тип аргумента:',
+                                                style='Smallest_small')
+                                            p5 = doc.add_paragraph(
+                                                elements_args[value2],
+                                                style='Smallest_small')
                                         if f == 'default_value' and value2 == 2:
-                                            p4 = doc.add_paragraph('Начальное значение аргумента:',
-                                                                   style='Smallest_small')
-                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                            p4 = doc.add_paragraph(
+                                                'Начальное значение аргумента:',
+                                                style='Smallest_small')
+                                            p5 = doc.add_paragraph(
+                                                elements_args[value2],
+                                                style='Smallest_small')
                                         if f == 'addition' and value2 == 3:
-                                            p4 = doc.add_paragraph('Примичание:', style='Smallest_small')
-                                            p5 = doc.add_paragraph(elements_args[value2], style='Smallest_small')
+                                            p4 = doc.add_paragraph(
+                                                'Примичание:',
+                                                style='Smallest_small')
+                                            p5 = doc.add_paragraph(
+                                                elements_args[value2],
+                                                style='Smallest_small')
                                         paragraph_format5 = p5.paragraph_format
-                                        paragraph_format5.first_line_indent = Inches(1.0)
+                                        paragraph_format5.first_line_indent = Inches(
+                                            1.0)
                                         paragraph_format4 = p4.paragraph_format
-                                        paragraph_format4.first_line_indent = Inches(0.75)
+                                        paragraph_format4.first_line_indent = Inches(
+                                            0.75)
                                 elements_args = elements_args[4:]
                     elements = elements[4:]
                     p6 = doc.add_paragraph()
