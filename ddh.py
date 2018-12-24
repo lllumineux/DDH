@@ -77,12 +77,12 @@ class ddh(QMainWindow):
     # Добавление функции в json файл
     def add_func(self):
         ans1, ok_pressed1 = QInputDialog.getText(
-            self, 'Изменить функцию', 'Введите название функции')
+            self, 'Добавить функцию', 'Введите название функции')
         ans2, ok_pressed2, wrong_value = '', False, False
 
         try:
             ans2, ok_pressed2 = QInputDialog.getText(
-                self, 'Изменить функцию', 'Введите количество аргументов')
+                self, 'Добавить функцию', 'Введите количество аргументов')
 
             if ans2.isalpha() or int(ans2) < 0:
                 QMessageBox.information(self, 'Ошибка', 'Неверное значение!')
